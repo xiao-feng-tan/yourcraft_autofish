@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "autofish",
+	"version": "1.0.0",
+	"name": "autofish",
+	"description": "适用于yourcraft的钓鱼机制mod",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/autofish/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"client": [
+			"com.example.autofish.AutofishMod"
+		]
+	},
+	"mixins": [
+		"autofish.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
