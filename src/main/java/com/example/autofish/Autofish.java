@@ -19,10 +19,11 @@ public class Autofish {
 
     // 状态变量
     private boolean isFishing = false;  // 是否正在钓鱼
-    private long castTime = 0;  // 抛竿时间戳
-    private int clickCounter = 0; // 点击计数器
+    private long castTime = 0;          // 当前抛竿时间戳（用于奖励监控）
+    private long currentCastTime = 0;   // 当前正在等待奖励的抛竿时间戳（唯一标识）
+    private int clickCounter = 0;        // 点击计数器
     private boolean waitingForReward = false; // 是否在等待奖励消息
-    private boolean rewardReceived = false;  // 标记是否收到奖励
+    private boolean rewardReceived = false;   // 标记是否收到奖励
 
     // 服务器检测专用
     private long serverHookCastTime = 0;
@@ -68,7 +69,6 @@ public class Autofish {
             // 假设鱼钩入水需要时间
             if (timeMillis - serverHookCastTime > 1000) {
                 serverHasHitWater = true;
-                //System.out.println("[Autofish] 鱼钩入水");
             }
         }
     }
@@ -89,17 +89,9 @@ public class Autofish {
                 int velocityXInt = (int)(velocityX * 8000.0);
                 int velocityZInt = (int)(velocityZ * 8000.0);
 
-                //System.out.println("[Autofish] 速度包: Y=" + velocityYInt + " (" + velocityY + "), X=" + velocityXInt + ", Z=" + velocityZInt);
-
-                // 原模组检测逻辑：
-                // 1. 鱼钩入水后
-                // 2. 等待鱼钩上浮（velocityY > 0）
-                // 3. 上浮一段时间后，检测下沉（velocityY < -350）
-
                 if (serverHasHitWater && serverBobberRiseTime == 0 && velocityY > 0) {
                     // 鱼钩开始上浮
                     serverBobberRiseTime = timeMillis;
-                    //System.out.println("[Autofish] 鱼钩开始上浮");
                 }
 
                 // 计算鱼钩在水中的时间
@@ -109,9 +101,7 @@ public class Autofish {
                 if (serverHasHitWater && serverBobberRiseTime != 0 && timeInWater > 1000) {
                     // 原模组条件：X和Z速度为0，Y速度小于-350
                     if (velocityXInt == 0 && velocityZInt == 0 && velocityYInt < -350) {
-                        //System.out.println("[Autofish] 服务器：鱼上钩了！");
                         catchFish();
-
                         // 重置状态
                         serverHasHitWater = false;
                         serverBobberRiseTime = 0;
@@ -125,21 +115,13 @@ public class Autofish {
     public void handleChat(String message) {
         // 如果在等待奖励消息
         if (waitingForReward) {
-            long currentTime = Util.getMeasuringTimeMs();
-            long timeSinceCast = currentTime - castTime;
-
-           // System.out.println("[Autofish] 收到聊天消息: " + message);
-            //System.out.println("  距离收杆时间: " + timeSinceCast + "ms");
-
             // 检查是否包含"您获得了"
             if (message.contains("您获得了")) {
-                //System.out.println("[Autofish] ✅ 检测到奖励消息，停止等待");
                 rewardReceived = true;
                 waitingForReward = false;
             }
         }
         if (isFishing && message.contains("鱼群发生了变动")) {
-            //System.out.println("[Autofish] 检测到鱼群变动，0.5秒后检查浮漂");
             mod.getScheduler().scheduleAction(ActionType.CHECK_HOOK, 500, () -> {
                 checkFishHookAndCast();
             });
@@ -153,8 +135,6 @@ public class Autofish {
             return;
         }
 
-        //System.out.println("[Autofish] 执行收杆");
-
         // 右键收杆
         useRod();
 
@@ -166,44 +146,40 @@ public class Autofish {
     private void startRewardMonitoring() {
         // 重置状态
         castTime = Util.getMeasuringTimeMs();
+        currentCastTime = castTime;           // 设置当前唯一标识
         waitingForReward = true;
         rewardReceived = false;
         clickCounter = 0;
 
-        //System.out.println("[Autofish] 开始实时监听奖励消息，时间戳: " + castTime);
-
-        // 设置7秒超时，防止无限等待
-        mod.getScheduler().scheduleAction(ActionType.CHECK_REWARD, 7900, () -> {
-            checkRewardAfterTimeout();
+        // 设置7.5秒超时，并传递本次的标识
+        long expectedCastTime = castTime;
+        mod.getScheduler().scheduleAction(ActionType.CHECK_REWARD, 7500, () -> {
+            checkRewardAfterTimeout(expectedCastTime);
         });
     }
 
-    // 超时检查（7秒后如果没有收到奖励）
-    private void checkRewardAfterTimeout() {
+    // 超时检查（7.9秒后如果没有收到奖励）
+    private void checkRewardAfterTimeout(long expectedCastTime) {
+        // 如果当前活跃的抛竿标识已经不是本次的，说明已被新抛竿替代，直接忽略
+        if (currentCastTime != expectedCastTime) {
+            return;
+        }
+
         if (!waitingForReward) {
             return; // 已经处理过了
         }
 
-        //System.out.println("[Autofish] ⏰ 7秒超时，检查奖励状态");
-        //System.out.println("  waitingForReward: " + waitingForReward);
-        //System.out.println("  rewardReceived: " + rewardReceived);
-
-        // 如果7秒后还在等待且没有收到奖励
+        // 如果仍在等待且未收到奖励
         if (waitingForReward && !rewardReceived) {
-            //System.out.println("[Autofish] ❌ 7秒内未检测到奖励消息，开始连续右键10次");
             waitingForReward = false;
             clickCounter = 0;
 
-            // 新增：检查是否仍然持有鱼竿
+            // 检查是否仍然持有鱼竿
             if (isHoldingFishingRod()) {
                 // 执行10次右键
                 scheduleNextClick();
-            } else {
-                //System.out.println("[Autofish] 玩家未持有鱼竿，取消连续右键");
-                // 无需执行任何操作，已重置状态
             }
-        } else {
-            //System.out.println("[Autofish] ✅ 超时前已收到奖励消息，无需额外操作");
+            // 否则不执行任何操作
         }
     }
 
@@ -214,7 +190,6 @@ public class Autofish {
         if (clickCounter >= 10) {
             // 10次点击完成，重置计数器
             clickCounter = 0;
-            //System.out.println("[Autofish] 10次连续右键完成");
 
             // 延迟1秒，检查浮漂实体是否存在
             mod.getScheduler().scheduleAction(ActionType.CHECK_HOOK, 1000, () -> {
@@ -225,36 +200,33 @@ public class Autofish {
 
         // 安排下一次右键（间隔200ms）
         mod.getScheduler().scheduleAction(ActionType.CLICK_ROD, 200, () -> {
-            //System.out.println("[Autofish] 执行第 " + (clickCounter + 1) + " 次右键");
             useRod();
             clickCounter++;
             scheduleNextClick(); // 递归调度
         });
     }
+
     /**
      * 检查玩家当前是否存在浮漂实体（fishHook）
      * - 若不存在，则执行一次右键（抛竿）
      * - 若已存在，则不做任何操作
      */
     private void checkFishHookAndCast() {
-        // 安全性检查：玩家、世界必须有效
         if (client.player == null || client.world == null) {
             return;
         }
 
         if (client.player.fishHook == null) {
-            //System.out.println("[Autofish] 未检测到浮漂实体，执行抛竿");
             useRod();
-        } else {
-            //System.out.println("[Autofish] 浮漂实体已存在，无需抛竿");
         }
+        // 否则不做操作
     }
+
     // 记录抛竿时间（服务器检测用）
     public void recordCast() {
         serverHookCastTime = timeMillis;
         serverHasHitWater = false;
         serverBobberRiseTime = 0;
-        //System.out.println("[Autofish] 记录抛竿时间");
     }
 
     // 使用鱼竿（右键点击）
