@@ -158,7 +158,7 @@ public class Autofish {
         });
     }
 
-    // 超时检查（7.9秒后如果没有收到奖励）
+    // 超时检查（7.5秒后如果没有收到奖励）
     private void checkRewardAfterTimeout(long expectedCastTime) {
         // 如果当前活跃的抛竿标识已经不是本次的，说明已被新抛竿替代，直接忽略
         if (currentCastTime != expectedCastTime) {
