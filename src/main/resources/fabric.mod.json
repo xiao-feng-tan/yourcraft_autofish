@@ -2,10 +2,10 @@
 	"schemaVersion": 1,
 	"id": "autofish",
 	"version": "1.0.0",
-	"name": "autofish",
-	"description": "适用于yourcraft的钓鱼机制mod",
+	"name": "自动钓鱼(只适用yc服务器!)",
+	"description": "只适用于yourcraft服务器的钓鱼机制mod,通过捕获特定网络包生效,对原版和其他服务器无效!",
 	"authors": [
-		"Me!"
+		"小风潭"
 	],
 	"contact": {
 		"homepage": "https://github.com/xiao-feng-tan/yourcraft_autofish/commits/1.0.0",
