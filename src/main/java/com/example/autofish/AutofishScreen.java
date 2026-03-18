@@ -1,6 +1,5 @@
 package com.example.autofish;
 
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
@@ -16,6 +15,7 @@ public class AutofishScreen extends Screen {
     private SliderWidget catchDelaySlider;
     private SliderWidget randomPercentSlider;
     private SliderWidget compensationDelaySlider;
+    private ButtonWidget resetCountButton; // 新增归零按钮
 
     protected AutofishScreen(AutofishMod mod) {
         super(Text.literal("自动钓鱼设置"));
@@ -104,6 +104,31 @@ public class AutofishScreen extends Screen {
         addDrawableChild(compensationDelaySlider);
         addTooltip(compensationDelaySlider, "最后一个标题包发出后等待此时间，若仍未收到奖励则执行10次右键补偿。");
 
+        y += 30;
+
+        // 显示当前钓鱼次数
+        Text countText = Text.literal("当前钓鱼次数: " + config.getCatchCount()).formatted(Formatting.GOLD);
+        ButtonWidget dummyButton = ButtonWidget.builder(countText, button -> {})
+                .dimensions(centerX - 75, y, 150, 20)
+                .build();
+        dummyButton.active = false; // 不可点击
+        addDrawableChild(dummyButton);
+
+        y += 25;
+
+        // 归零按钮
+        resetCountButton = ButtonWidget.builder(
+                        Text.literal("归零").formatted(Formatting.RED),
+                        button -> {
+                            config.resetCatchCount();
+                            // 刷新界面文本（重建界面简单方式：重新初始化）
+                            this.clearChildren();
+                            this.init();
+                        })
+                .dimensions(centerX - 50, y, 100, 20)
+                .build();
+        addDrawableChild(resetCountButton);
+
         y += 40;
 
         // 关闭按钮
@@ -119,15 +144,11 @@ public class AutofishScreen extends Screen {
     }
 
     private void addTooltip(SliderWidget widget, String tooltip) {
-        // 简单实现：hover时在屏幕底部显示（可自行扩展）
-        // 这里不深入实现复杂tooltip，仅用控制台提示或简单文本
-        // 实际可添加一个hover监听，但为简洁，我们仅作为备注
-        // 也可在滑块下方显示静态文本，但需求是悬停显示，我们在此省略精确实现，保留方法占位
-        // Minecraft 1.21 有 Tooltip 机制，需要更复杂的代码，我们暂时忽略
+        // 简化，不做悬停提示，可后续添加
     }
 
     @Override
     public boolean shouldPause() {
-        return false; // 不暂停游戏
+        return false;
     }
 }

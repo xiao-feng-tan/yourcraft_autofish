@@ -35,6 +35,8 @@ public class AutofishMod implements ClientModInitializer {
 
         this.scheduler = new AutofishScheduler(this);
         this.autofish = new Autofish(this);
+        // 注册 HUD 和背包界面元素
+        AutofishOverlay.init(this);
         System.out.println("[Autofish] 模组初始化");
 
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);

@@ -13,9 +13,10 @@ public class AutofishConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private boolean enabled = true;
-    private int catchDelay = 1500;          // 收杆延迟（毫秒），1~2000
-    private int randomPercent = 30;          // 随机百分比 1~100
-    private int compensationDelay = 2000;    // 补偿延迟（毫秒），1000~7000
+    private int catchDelay = 1500;
+    private int randomPercent = 30;
+    private int compensationDelay = 2000;
+    private int catchCount = 0; // 新增：钓鱼次数
 
     public static AutofishConfig load() {
         if (Files.exists(CONFIG_PATH)) {
@@ -40,7 +41,7 @@ public class AutofishConfig {
         }
     }
 
-    // getters and setters with auto-save
+    // Getter/Setter with auto-save
     public boolean isEnabled() {
         return enabled;
     }
@@ -74,6 +75,25 @@ public class AutofishConfig {
 
     public void setCompensationDelay(int compensationDelay) {
         this.compensationDelay = Math.max(1000, Math.min(7000, compensationDelay));
+        save();
+    }
+
+    public int getCatchCount() {
+        return catchCount;
+    }
+
+    public void setCatchCount(int catchCount) {
+        this.catchCount = Math.max(0, catchCount);
+        save();
+    }
+
+    public void incrementCatchCount() {
+        this.catchCount++;
+        save();
+    }
+
+    public void resetCatchCount() {
+        this.catchCount = 0;
         save();
     }
 }

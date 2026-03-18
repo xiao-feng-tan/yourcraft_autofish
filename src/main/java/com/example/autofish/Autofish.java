@@ -100,17 +100,21 @@ public class Autofish {
         }
     }
 
-    // 处理聊天消息
     public void handleChat(String message) {
         client.execute(() -> {
             if (!config.isEnabled()) return;
             if (message.contains("您获得了")) {
+                config.incrementCatchCount();
+
                 if (isTitleSequenceActive) {
                     rewardReceivedDuringTitle = true;
                     isTitleSequenceActive = false;
                     rodUseScheduled = false;
                     System.out.println("[Autofish] 标题序列期间收到奖励，序列结束");
                 }
+            } else if (message.contains("鱼群发生了变动")) {
+                // 延迟0.5秒检查浮漂并重新抛竿
+                mod.getScheduler().scheduleAction(ActionType.CHECK_HOOK, 500, this::checkFishHookAndCast);
             }
         });
     }
